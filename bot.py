@@ -12,8 +12,10 @@ import time
 import threading
 
 # ============================================
-# ТВОИ ДАННЫЕ:
-TOKEN = "vk1.a.pCHFwhkc42ELETpehxP2TqpXIJG2u2_OM448fyk-AuaDii7l2Ojp8geusVhXqw2d9YyYtRTqJoV0GtmIlgZQbhGm00vAsSokZlHu4xjQGC6rrWYwLFbhu6Z0dluFyLwcvsrFFWlUPdayo8WIOLu2Si5eSYYUOT96HP0gWe18T6tCfZS8cCt-JQo7UFhnwVHSqeM2bj1mCPtDLNLEnxm19A"
+# ТВОИ ДАННЫЕ:TOKE
+import os
+
+TOKEN = os.getenv('VK_TOKEN', "vk1.a.pCHFwhkc42ELETpehxP2TqpXIJG2u2_OM448fyk-AuaDii7l2Ojp8geusVhXqw2d9YyYtRTqJoV0GtmIlgZQbhGm00vAsSokZlHu4xjQGC6rrWYwLFbhu6Z0dluFyLwcvsrFFWlUPdayo8WIOLu2Si5eSYYUOT96HP0gWe18T6tCfZS8cCt-JQo7UFhnwVHSqeM2bj1mCPtDLNLEnxm19A")
 GROUP_ID = 234254762
 
 # СПИСОК АДМИНОВ
