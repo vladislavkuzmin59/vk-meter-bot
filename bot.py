@@ -12,10 +12,8 @@ import time
 import threading
 
 # ============================================
-# ТВОИ ДАННЫЕ:TOKE
-import os
-
-TOKEN = os.getenv('VK_TOKEN', "vk1.a.pCHFwhkc42ELETpehxP2TqpXIJG2u2_OM448fyk-AuaDii7l2Ojp8geusVhXqw2d9YyYtRTqJoV0GtmIlgZQbhGm00vAsSokZlHu4xjQGC6rrWYwLFbhu6Z0dluFyLwcvsrFFWlUPdayo8WIOLu2Si5eSYYUOT96HP0gWe18T6tCfZS8cCt-JQo7UFhnwVHSqeM2bj1mCPtDLNLEnxm19A")
+# ТВОИ ДАННЫЕ:
+TOKEN = "vk1.a.pCHFwhkc42ELETpehxP2TqpXIJG2u2_OM448fyk-AuaDii7l2Ojp8geusVhXqw2d9YyYtRTqJoV0GtmIlgZQbhGm00vAsSokZlHu4xjQGC6rrWYwLFbhu6Z0dluFyLwcvsrFFWlUPdayo8WIOLu2Si5eSYYUOT96HP0gWe18T6tCfZS8cCt-JQo7UFhnwVHSqeM2bj1mCPtDLNLEnxm19A"
 GROUP_ID = 234254762
 
 # СПИСОК АДМИНОВ
@@ -506,6 +504,12 @@ def can_send_photos_for_group(group_type):
         return 11 <= today <= 14
     else:
         return 24 <= today <= 29
+
+def get_send_period_text(group_type):
+    if group_type == 'vodokanal':
+        return "с 11 по 14 число"
+    else:
+        return "с 24 по 29 число"
 
 # ============================================
 # КЛАВИАТУРЫ
@@ -1475,6 +1479,66 @@ try:
                         print(f"📸 Получено {len(current_photos)} фото через API")
                 
                 if current_photos:
+                    # ===== ЕСЛИ АДМИН - ПРОПУСКАЕМ ПРОВЕРКУ АНКЕТЫ =====
+                    if is_admin(from_id):
+                        group_type = None
+                        is_edit = False
+                        
+                        if peer_id in admin_states and admin_states[peer_id].get('step') == 'edit_photos':
+                            group_type = admin_states[peer_id].get('group_type')
+                            is_edit = True
+                        
+                        if not group_type:
+                            today = get_current_day()
+                            if 11 <= today <= 14:
+                                group_type = 'vodokanal'
+                            elif 24 <= today <= 29:
+                                group_type = 'main'
+                            else:
+                                send_message(vk_session_global, peer_id, "❌ Сейчас не период приема показаний.")
+                                continue
+                        
+                        # Обработка фото для админа
+                        attachments = []
+                        success_count = 0
+                        failed_count = 0
+                        
+                        for i, photo_data in enumerate(current_photos):
+                            try:
+                                photo = photo_data['photo']
+                                photo_url = max(photo['sizes'], key=lambda x: x['width'] * x['height'])['url']
+                                filename = f"meter_{from_id}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{i+1}.jpg"
+                                
+                                print(f"📸 Обработка фото {i+1}/{len(current_photos)}")
+                                
+                                if download_photo(photo_url, filename):
+                                    attachment = upload_photo_to_vk(vk_session_global, filename)
+                                    if attachment:
+                                        attachments.append(attachment)
+                                        success_count += 1
+                                        print(f"✅ Фото {i+1} загружено")
+                                    else:
+                                        failed_count += 1
+                                else:
+                                    failed_count += 1
+                                
+                                if os.path.exists(filename):
+                                    os.remove(filename)
+                                    
+                            except Exception as e:
+                                failed_count += 1
+                                print(f"❌ Ошибка обработки фото {i+1}: {e}")
+                        
+                        if attachments:
+                            group_name = 'Водоканал' if group_type == 'vodokanal' else 'Основная'
+                            send_message(vk_session_global, peer_id, 
+                                f"✅ *Фото для группы '{group_name}' обработаны!*\n\n"
+                                f"📸 Отправлено фото: {success_count}{f' ({failed_count} не загружено)' if failed_count else ''}")
+                        else:
+                            send_message(vk_session_global, peer_id, "❌ Не удалось обработать фото.")
+                        continue
+                    
+                    # ===== ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ - ПРОВЕРЯЕМ АНКЕТУ =====
                     user = get_user(from_id)
                     if not user:
                         send_message(vk_session_global, peer_id, "❌ Сначала заполните анкету.", get_main_with_fill_keyboard())
@@ -1589,7 +1653,7 @@ try:
                             send_message(vk_session_global, peer_id, 
                                 f"✅ *Показания для группы '{group_name}' отправлены!*\n\n"
                                 f"📸 Отправлено фото: {success_count}{f' ({failed_count} не загружено)' if failed_count else ''}\n\n"
-                                f"🔄 Если хотите заменить показания, нажмите кнопку 'Заменить показания' в меню.\n\n"
+                                f"📸 Если вы отправили не то фото, нажмите кнопку 'Заменить показания' в меню.\n\n"
                                 f"💡 Следующее напоминание придет в следующем периоде приема показаний.")
                         
                         if peer_id in admin_states:
