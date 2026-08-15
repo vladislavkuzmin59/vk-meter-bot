@@ -23,6 +23,15 @@ ADMIN_IDS = [
 ]
 
 # ============================================
+# ПУТЬ К БАЗЕ ДАННЫХ
+# ============================================
+DB_PATH = os.getenv('DB_PATH', 'users.db')
+
+def get_db_connection():
+    """Возвращает подключение к базе данных"""
+    return sqlite3.connect(DB_PATH)
+
+# ============================================
 # РЕЖИМ ТЕСТИРОВАНИЯ ДАТ
 # ============================================
 TEST_DAY = 0  # 0 - реальная дата, любое другое число - тестовый режим
@@ -46,7 +55,7 @@ def reset_meter_status_for_test(group_type=None):
     """Сбрасывает статусы отправки показаний для тестов
     group_type: 'vodokanal' - только водоснабжение, 'main' - только основные, None - все
     """
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if group_type == 'vodokanal':
@@ -126,7 +135,7 @@ def send_startup_notification(vk_session):
 # БАЗА ДАННЫХ
 # ============================================
 def init_db():
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -191,7 +200,7 @@ def init_db():
     conn.close()
 
 def get_user(vk_id):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE vk_id = ?", (vk_id,))
     user = cursor.fetchone()
@@ -199,7 +208,7 @@ def get_user(vk_id):
     return user
 
 def get_all_users():
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users ORDER BY registration_date DESC")
     users = cursor.fetchall()
@@ -207,7 +216,7 @@ def get_all_users():
     return users
 
 def get_user_groups(vk_id):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT group_type FROM user_groups WHERE vk_id = ?", (vk_id,))
     result = cursor.fetchall()
@@ -215,7 +224,7 @@ def get_user_groups(vk_id):
     return [row[0] for row in result] if result else []
 
 def is_user_in_group(vk_id, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM user_groups WHERE vk_id = ? AND group_type = ?", (vk_id, group_type))
     result = cursor.fetchone()
@@ -223,7 +232,7 @@ def is_user_in_group(vk_id, group_type):
     return result is not None
 
 def add_user_to_group(vk_id, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("INSERT OR IGNORE INTO user_groups (vk_id, group_type) VALUES (?, ?)", (vk_id, group_type))
@@ -233,14 +242,14 @@ def add_user_to_group(vk_id, group_type):
     conn.close()
 
 def remove_user_from_group(vk_id, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM user_groups WHERE vk_id = ? AND group_type = ?", (vk_id, group_type))
     conn.commit()
     conn.close()
 
 def save_user(vk_id, full_name, organization="", address="", room="", mall_name=""):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute("SELECT * FROM users WHERE vk_id = ?", (vk_id,))
@@ -273,7 +282,7 @@ def save_user(vk_id, full_name, organization="", address="", room="", mall_name=
     return is_new
 
 def get_user_meter_status(vk_id, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if group_type == 'main':
@@ -290,7 +299,7 @@ def get_user_meter_status(vk_id, group_type):
     return {'sent': False, 'can_edit': False}
 
 def save_meter_photos_for_group(vk_id, photos, month, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if group_type == 'main':
@@ -326,7 +335,7 @@ def save_meter_photos_for_group(vk_id, photos, month, group_type):
     print(f"💾 Сохранено фото для группы {group_type}")
 
 def get_meter_photos_for_group(vk_id, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     if group_type == 'main':
@@ -346,7 +355,7 @@ def get_meter_photos_for_group(vk_id, group_type):
     return {'photos': [], 'month': ''}
 
 def mark_notified(vk_id):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET notified = 1 WHERE vk_id = ?", (vk_id,))
     conn.commit()
@@ -356,7 +365,7 @@ def check_and_disable_edit():
     today = get_current_day()
     
     if today > 30:
-        conn = sqlite3.connect('users.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE users SET 
@@ -370,7 +379,7 @@ def check_and_disable_edit():
         return True
     
     if today > 14:
-        conn = sqlite3.connect('users.db')
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE users SET can_edit_vodokanal = 0
@@ -665,7 +674,7 @@ def extract_vk_id_from_url(text):
 # ============================================
 def show_all_users(vk_session, peer_id):
     """Показывает полную информацию о всех пользователях"""
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users ORDER BY registration_date DESC")
     users = cursor.fetchall()
@@ -802,7 +811,7 @@ def send_admin_notification(vk_session, user_data):
 def send_meter_reminders(vk_session):
     print("📅 Запуск ежедневного напоминания по основным счетчикам...")
     
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT u.* FROM users u
@@ -862,7 +871,7 @@ def send_meter_reminders(vk_session):
 def send_vodokanal_reminders(vk_session):
     print("📅 Запуск ежедневного напоминания по счетчикам водоснабжения...")
     
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT u.* FROM users u
@@ -1000,7 +1009,7 @@ def show_statistics(vk_session, peer_id):
 # ПОКАЗАНИЯ СЧЕТЧИКОВ (для админа)
 # ============================================
 def show_meter_readings(vk_session, peer_id, group_type):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT u.* FROM users u
@@ -1070,7 +1079,7 @@ def show_meter_readings(vk_session, peer_id, group_type):
 # ВОДОКАНАЛ
 # ============================================
 def show_vodokanal_users(vk_session, peer_id):
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT u.* FROM users u
