@@ -24,7 +24,7 @@ ADMIN_IDS = [
 ]
 
 # ============================================
-# ПУТЬ К БАЗЕ (как было на BotHost)
+# ПУТЬ К БАЗЕ (как у тебя в файловом менеджере)
 # ============================================
 DB_PATH = os.getenv('DB_PATH', 'users.db')
 
@@ -1021,7 +1021,6 @@ def setup_schedule(vk_session):
         global reminder_sent_vodokanal, reminder_sent_main
 
         # Автосброс статусов за прошлый месяц
-        # ⚠️ Если в твоём файле НЕТ функции reset_old_month_status — удали эту строку
         reset_old_month_status()
 
         # Окно отправки: 9:00–17:59 строго по Пермскому краю (UTC+5)
@@ -1070,7 +1069,7 @@ if TEST_DAY > 0:
 print("=" * 60)
 
 init_db()
-reset_old_month_status()  # ⚠️ Если функции нет — удали эту строку
+reset_old_month_status()
 
 vk_session_global = None
 
@@ -1107,6 +1106,11 @@ try:
 
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
+            # ИСПРАВЛЕНИЕ ОШИБКИ SYNTAXERROR:
+            # Объявляем global TEST_DAY в самом начале блока обработки, 
+            # чтобы Python не ругался на использование до объявления.
+            global TEST_DAY
+            
             check_and_disable_edit()
             msg = event.obj.message
             text = msg['text'].lower().strip() if 'text' in msg else ""
@@ -1155,7 +1159,6 @@ try:
             # ТЕСТ ДАТЫ - КНОПКИ
             if text in ["📅 1 число", "📅 11 число", "📅 12 число", "📅 14 число",
                         "📅 24 число", "📅 25 число", "📅 29 число"] and is_admin(from_id):
-                global TEST_DAY
                 day_map = {
                     "📅 1 число": 1, "📅 11 число": 11, "📅 12 число": 12,
                     "📅 14 число": 14, "📅 24 число": 24, "📅 25 число": 25, "📅 29 число": 29
