@@ -47,7 +47,6 @@ def get_current_month():
     return datetime.datetime.now().strftime("%Y-%m")
 
 def reset_to_real_date():
-    global TEST_DAY
     TEST_DAY = 0
     print("📅 Реальный режим восстановлен")
 
@@ -1106,11 +1105,6 @@ try:
 
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
-            # ИСПРАВЛЕНИЕ ОШИБКИ SYNTAXERROR:
-            # Объявляем global TEST_DAY в самом начале блока обработки, 
-            # чтобы Python не ругался на использование до объявления.
-            global TEST_DAY
-            
             check_and_disable_edit()
             msg = event.obj.message
             text = msg['text'].lower().strip() if 'text' in msg else ""
