@@ -26,7 +26,9 @@ ADMIN_IDS = [
 # ============================================
 # ПУТЬ К БАЗЕ (как у тебя в файловом менеджере)
 # ============================================
-DB_PATH = os.getenv('DB_PATH', 'users.db')
+DATA_DIR = "/app/data"
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(DATA_DIR, 'users.db')
 
 def get_db_connection():
     return sqlite3.connect(DB_PATH)
